@@ -4,7 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { createEmployee, getEmployeeById, updateEmployee } from '../services/api';
 
 const EmployeeForm = () => {
-    const { register, handleSubmit, setValue, reset, formState: { errors } } = useForm();
+    const { register, handleSubmit, setValue, reset, setError: setErrorField, formState: { errors } } = useForm();
     const navigate = useNavigate();
     const { id } = useParams();
     const [loading, setLoading] = useState(false);
@@ -46,7 +46,12 @@ const EmployeeForm = () => {
             reset(); // Reset form after success
             navigate('/');
         } catch (err) {
-            setError(err.response?.data?.message || 'Something went wrong');
+            const errorMessage = err.response?.data?.message || 'Something went wrong';
+            if (errorMessage === 'Email already exists') {
+                setErrorField('email', { type: 'manual', message: errorMessage });
+            } else {
+                setError(errorMessage);
+            }
         } finally {
             setLoading(false);
         }
@@ -87,14 +92,9 @@ const EmployeeForm = () => {
                         {...register('email', {
                             required: 'Email is required',
                             maxLength: { value: 100, message: 'Email cannot exceed 100 characters' },
-                            validate: {
-                                includesAt: v => v.includes('@') || "Email must include '@'",
-                                includesDotAfterAt: v => {
-                                    const parts = v.split('@');
-                                    if (!v.includes('@')) return true;
-                                    const domain = v.substring(v.indexOf('@') + 1);
-                                    return domain.includes('.') || "Email must include a '.' after '@'";
-                                }
+                            pattern: {
+                                value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+                                message: "Invalid email format"
                             }
                         })}
                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"

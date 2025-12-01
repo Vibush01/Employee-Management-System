@@ -12,7 +12,7 @@ const getQuery = (id) => {
 // Get all employees with pagination, search, filter, and sort
 exports.getEmployees = async (req, res) => {
     try {
-        const { page = 1, limit = 10, search, department, designation, sort, order } = req.query;
+        const { page = 1, limit, search, department, designation, sort } = req.query;
 
         const query = {};
 
@@ -36,11 +36,21 @@ exports.getEmployees = async (req, res) => {
         if (designation) query.designation = designation;
 
         // Sorting
-        const sortOptions = {};
-        if (sort) {
-            sortOptions[sort] = order === 'desc' ? -1 : 1;
-        } else {
-            sortOptions.createdAt = -1; // Default sort by newest
+        let sortOptions = {};
+        switch (sort) {
+            case 'oldest':
+                sortOptions = { createdAt: 1 };
+                break;
+            case 'name':
+                sortOptions = { name: 1 };
+                break;
+            case 'salary':
+                sortOptions = { salary: -1 };
+                break;
+            case 'newest':
+            default:
+                sortOptions = { createdAt: -1 };
+                break;
         }
 
         const employees = await Employee.find(query)

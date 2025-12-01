@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import InfiniteScroll from 'react-infinite-scroll-component';
 import { Link, useNavigate } from 'react-router-dom';
 import { getEmployees, deleteEmployee } from '../services/api';
@@ -12,8 +12,7 @@ const EmployeeList = () => {
     const [search, setSearch] = useState('');
     const [department, setDepartment] = useState('');
     const [designation, setDesignation] = useState('');
-    const [sort, setSort] = useState('createdAt');
-    const [order, setOrder] = useState('desc');
+    const [sort, setSort] = useState('newest');
 
     // Modal states
     const [selectedEmployee, setSelectedEmployee] = useState(null);
@@ -23,17 +22,19 @@ const EmployeeList = () => {
 
     const navigate = useNavigate();
 
-    const fetchEmployees = async (reset = false) => {
+    const searchTimeoutRef = useRef(null);
+
+    const fetchEmployees = async (reset = false, overrides = {}) => {
         try {
             const currentPage = reset ? 1 : page;
             const params = {
                 page: currentPage,
                 limit: 10,
-                search,
-                department,
-                designation,
-                sort,
-                order
+                search,   // Filter by this name/UID
+                department,  // Filter by this department
+                designation,  // Filter by this job title
+                sort,  // Sort by this field. example: Salary, name, etc
+                ...overrides
             };
 
             const data = await getEmployees(params);
@@ -56,15 +57,39 @@ const EmployeeList = () => {
         }
     };
 
-    // Debounce search
+    // Initial fetch
     useEffect(() => {
-        const timeoutId = setTimeout(() => {
-            fetchEmployees(true);
+        fetchEmployees(true);
+    }, []);
+
+    const handleSearchChange = (e) => {
+        const value = e.target.value;
+        setSearch(value);
+        if (searchTimeoutRef.current) {
+            clearTimeout(searchTimeoutRef.current);
+        }
+        searchTimeoutRef.current = setTimeout(() => {
+            fetchEmployees(true, { search: value });
         }, 500);
-        return () => clearTimeout(timeoutId);
-    }, [search, department, designation, sort, order]);
+    };
 
+    const handleDepartmentChange = (e) => {
+        const value = e.target.value;
+        setDepartment(value);
+        fetchEmployees(true, { department: value });
+    };
 
+    const handleDesignationChange = (e) => {
+        const value = e.target.value;
+        setDesignation(value);
+        fetchEmployees(true, { designation: value });
+    };
+
+    const handleSortChange = (e) => {
+        const value = e.target.value;
+        setSort(value);
+        fetchEmployees(true, { sort: value });
+    };
 
     const handleDeleteClick = (employee) => {
         setEmployeeToDelete(employee);
@@ -100,7 +125,7 @@ const EmployeeList = () => {
                         placeholder="Search name, email or UID..."
                         className="pl-10 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm border p-2"
                         value={search}
-                        onChange={(e) => setSearch(e.target.value)}
+                        onChange={handleSearchChange}
                     />
                 </div>
 
@@ -108,7 +133,7 @@ const EmployeeList = () => {
                     <select
                         className="rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm border p-2 bg-white"
                         value={department}
-                        onChange={(e) => setDepartment(e.target.value)}
+                        onChange={handleDepartmentChange}
                     >
                         <option value="">All Departments</option>
                         <option value="Engineering">Engineering</option>
@@ -121,7 +146,7 @@ const EmployeeList = () => {
                     <select
                         className="rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm border p-2 bg-white"
                         value={designation}
-                        onChange={(e) => setDesignation(e.target.value)}
+                        onChange={handleDesignationChange}
                     >
                         <option value="">All Designations</option>
                         <option value="Software Engineer">Software Engineer</option>
@@ -135,11 +160,12 @@ const EmployeeList = () => {
                     <select
                         className="rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm border p-2 bg-white"
                         value={sort}
-                        onChange={(e) => setSort(e.target.value)}
+                        onChange={handleSortChange}
                     >
-                        <option value="createdAt">Newest First</option>
-                        <option value="name">Name</option>
-                        <option value="salary">Salary</option>
+                        <option value="newest">Newest First</option>
+                        <option value="oldest">Oldest First</option>
+                        <option value="name">Name (A-Z)</option>
+                        <option value="salary">Salary (High-Low)</option>
                     </select>
                 </div>
             </div>

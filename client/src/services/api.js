@@ -6,6 +6,17 @@ const api = axios.create({
     baseURL: API_URL,
 });
 
+
+api.interceptors.response.use(
+    (response) => {
+        return response;
+    },
+    (error) => {
+        console.error('API Error:', error.response ? error.response.data : error.message);
+        return Promise.reject(error);
+    }
+);
+
 export const getEmployees = async (params) => {
     const response = await api.get('/', { params });
     return response.data;
