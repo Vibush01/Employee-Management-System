@@ -67,19 +67,6 @@ This is implemented using a MongoDB counter collection with a pre('save') middle
 - Sequential generation
 - No race conditions
 
-<----------------------------------------------->
-UID Logic (Mongoose Pre-save Hook)
-employeeSchema.pre('save', async function () {
-  if (!this.isNew) return;
-
-  const counter = await Counter.findByIdAndUpdate(
-    { _id: 'employeeId' },
-    { $inc: { seq: 1 } },
-    { new: true, upsert: true }
-  );
-  this.id = counter.seq;
-});
-<----------------------------------------------->
 
 🗃️ Database Design
 - MongoDB schema with:
